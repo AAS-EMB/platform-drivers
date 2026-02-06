@@ -10,15 +10,15 @@ struct async_flag {
     async_flag(const async_flag&) noexcept = delete;
     async_flag& operator=(const async_flag&) noexcept = delete;
     ~async_flag() noexcept {
-        waiter_ = {};
+        handle_ = {};
     }
 
     async_flag& operator=(bool value) noexcept {
         value_ = value;
 
-        if (value_ and waiter_) {
-            auto h  = waiter_;
-            waiter_ = {};
+        if (value_ and handle_) {
+            auto h  = handle_;
+            handle_ = {};
             h.resume();
         }
 
@@ -33,23 +33,23 @@ struct async_flag {
         return value_;
     }
 
-    void await_suspend(std::coroutine_handle<> handle) noexcept {
-        assert(waiter_ == nullptr && "Only one waiter");
+    void await_suspend(std::coroutine_handle<> h) noexcept {
+        assert(handle_ == nullptr && "Only one waiter");
         if (value_) {
-            handle.resume();
+            h.resume();
         } else {
-            waiter_ = handle;
+            handle_ = h;
         }
     }
 
     bool await_resume() noexcept {
-        waiter_ = {};
+        handle_ = {};
         return value_;
     }
 
 private:
     bool value_{false};
-    std::coroutine_handle<> waiter_{};
+    std::coroutine_handle<> handle_{};
 };
 
 }
