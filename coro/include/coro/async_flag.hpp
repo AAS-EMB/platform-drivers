@@ -1,66 +1,55 @@
 #pragma once
 #include <coroutine>
 #include <cstdbool>
+#include <cassert>
 
 namespace driver::async {
 
 struct async_flag {
-    async_flag() = default;
-    async_flag(const async_flag&) = delete;
-    async_flag& operator=(const async_flag&) = delete;
-
-    struct awaiter {
-        async_flag & f;
-
-        bool await_ready() const noexcept {
-            return f.flag;
-        }
-
-        void await_suspend(std::coroutine_handle<> h) noexcept {
-            assert(!f.handle && "Only one waiter supported");
-            f.handle = h;
-            f.armed  = true;
-        }
-
-        void await_resume() const noexcept {}
-    };
-
-    auto operator co_await() noexcept {
-        return awaiter{*this};
+    async_flag() noexcept = default;
+    async_flag(const async_flag&) noexcept = delete;
+    async_flag& operator=(const async_flag&) noexcept = delete;
+    ~async_flag() noexcept {
+        waiter_ = {};
     }
 
-    async_flag& operator=(bool const& value) noexcept {
-        value ? set() : reset();
+    async_flag& operator=(bool value) noexcept {
+        value_ = value;
+
+        if (value_ and waiter_) {
+            auto h  = waiter_;
+            waiter_ = {};
+            h.resume();
+        }
+
         return *this;
     }
 
-    bool is_set() const noexcept {
-        return flag;
+    operator bool() const {
+        return value_;
     }
 
-private:
-    bool flag{false};
-    bool armed{false};
-    std::coroutine_handle<> handle{};
+    bool await_ready() const noexcept {
+        return value_;
+    }
 
-    void set() noexcept {
-        if (flag) return;
-
-        flag = true;
-
-        if (armed && handle) {
-            auto h = handle;
-            handle = {};
-            if (!h.done()) {
-                h.resume();
-            }
+    void await_suspend(std::coroutine_handle<> handle) noexcept {
+        assert(waiter_ == nullptr && "Only one waiter");
+        if (value_) {
+            handle.resume();
+        } else {
+            waiter_ = handle;
         }
     }
 
-    void reset() noexcept {
-        flag = false;
-        handle = {};
+    bool await_resume() noexcept {
+        waiter_ = {};
+        return value_;
     }
+
+private:
+    bool value_{false};
+    std::coroutine_handle<> waiter_{};
 };
 
 }

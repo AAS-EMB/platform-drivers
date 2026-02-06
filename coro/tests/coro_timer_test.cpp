@@ -16,12 +16,10 @@ TEST_F(CoroTimer, DoesNotFireTooEarly) {
     coro_timer ct(100ns);
     bool fired = false;
 
-    auto coro = [&]() -> coro_task {
+    launch_task([](auto & ct, auto & fired) -> coro_task {
         co_await ct.async_wait();
         fired = true;
-    };
-
-    auto t = coro();
+    }, ct, fired).resume();
 
     ct.process();
     EXPECT_FALSE(fired);
@@ -39,12 +37,10 @@ TEST_F(CoroTimer, FiresAtDeadline) {
     coro_timer ct(100ns);
     bool fired = false;
 
-    auto coro = [&]() -> coro_task {
+    launch_task([](auto & ct, auto & fired) -> coro_task {
         co_await ct.async_wait();
         fired = true;
-    };
-
-    auto t = coro();
+    }, ct, fired).resume();
 
     ct.process();
     EXPECT_FALSE(fired);
@@ -57,22 +53,18 @@ TEST_F(CoroTimer, FiresAtDeadline) {
 TEST_F(CoroTimer, MultipleTimersWork) {
     coro_timer ct1(50ns);
     coro_timer ct2(100ns);
-    steady_clock::traits::reset();
     bool a = false;
     bool b = false;
 
-    auto coro1 = [&]() -> coro_task {
-        co_await ct1.async_wait();
-        a = true;
-    };
+    launch_task([](auto & ct, auto & fired) -> coro_task {
+        co_await ct.async_wait();
+        fired = true;
+    }, ct1, a).resume();
 
-    auto coro2 = [&]() -> coro_task {
-        co_await ct2.async_wait();
-        b = true;
-    };
-
-    auto t1 = coro1();
-    auto t2 = coro2();
+    launch_task([](auto & ct, auto & fired) -> coro_task {
+        co_await ct.async_wait();
+        fired = true;
+    }, ct2, b).resume();
 
     steady_clock::traits::advance(60);
     ct1.process();
@@ -90,12 +82,10 @@ TEST_F(CoroTimer, FiresOnlyOnce) {
     coro_timer ct(100ns);
     int count = 0;
 
-    auto coro = [&]() -> coro_task {
+    launch_task([](auto & ct, auto & count) -> coro_task {
         co_await ct.async_wait();
         ++count;
-    };
-
-    auto t = coro();
+    }, ct, count).resume();
 
     driver::steady_clock::traits::advance(100);
     ct.process();
@@ -111,12 +101,10 @@ TEST_F(CoroTimer, AwaitReadyIfAlreadyExpired) {
 
     driver::steady_clock::traits::advance(200);
 
-    auto coro = [&]() -> coro_task {
+    launch_task([](auto & ct, auto & fired) -> coro_task {
         co_await ct.async_wait();
         fired = true;
-    };
-
-    auto t = coro();
+    }, ct, fired).resume();
 
     EXPECT_TRUE(fired);
 }
@@ -125,12 +113,10 @@ TEST_F(CoroTimer, ResetDeadline) {
     coro_timer ct(100ns);
     bool fired = false;
 
-    auto coro = [&]() -> coro_task {
+    launch_task([](auto & ct, auto & fired) -> coro_task {
         co_await ct.async_wait();
         fired = true;
-    };
-
-    auto t = coro();
+    }, ct, fired).resume();
 
     ct.expires_after(200ns);
 
@@ -147,12 +133,10 @@ TEST_F(CoroTimer, NoPollNoFire) {
     coro_timer ct(100ns);
     bool fired = false;
 
-    auto coro = [&]() -> coro_task {
+    launch_task([](auto & ct, auto & fired) -> coro_task {
         co_await ct.async_wait();
         fired = true;
-    };
-
-    auto t = coro();
+    }, ct, fired).resume();
 
     steady_clock::traits::advance(200);
     EXPECT_FALSE(fired);
@@ -162,82 +146,71 @@ TEST_F(CoroTimer, CanBeReused) {
     coro_timer ct(100ns);
     int count = 0;
 
-    auto coro1 = [&]() -> coro_task {
-        ct.expires_after(100ns);
+    launch_task([](auto & ct, auto & count) -> coro_task {
         co_await ct.async_wait();
         ++count;
-    };
-
-    auto t1 = coro1();
+    }, ct, count).resume();
 
     driver::steady_clock::traits::advance(100);
     ct.process();
     EXPECT_EQ(count, 1);
 
-    auto coro2 = [&]() -> coro_task {
-        ct.expires_after(200ns);
+    ct.expires_after(200ns);
+
+    launch_task([](auto & ct, auto & count) -> coro_task {
         co_await ct.async_wait();
         ++count;
-    }();
+    }, ct, count).resume();
 
     driver::steady_clock::traits::advance(200);
     ct.process();
     EXPECT_EQ(count, 2);
 }
 
-// TEST_F(TimerTest, OnlyOneWaiterAllowed) {
-//     using namespace driver::async;
+TEST_F(CoroTimer, OnlyOneWaiterAllowed) {
+    coro_timer ct(100ns);
 
-//     steady_timer t(100ns);
-//     bool a = false, b = false;
+    launch_task([](auto & ct) -> coro_task {
+        co_await ct.async_wait();
+    }, ct).resume();
 
-//     coro_task t1 = [&]() -> coro_task {
-//         co_await t.async_wait();
-//         a = true;
-//     }();
+#ifndef NDEBUG
+    EXPECT_DEATH({
+        launch_task([](auto & ct) -> coro_task {
+            co_await ct.async_wait();
+        }, ct).resume();
+    }, "Only one waiter");
+#endif
+}
 
-// #ifndef NDEBUG
-//     EXPECT_DEATH({
-//         coro_task t2 = [&]() -> coro_task {
-//             co_await t.async_wait();
-//             b = true;
-//         }();
-//     }, ".*");
-// #endif
-// }
+TEST_F(CoroTimer, TimerOutlivesCoroutine) {
+    coro_timer ct(100ns);
 
-// TEST_F(TimerTest, TimerOutlivesCoroutine) {
-//     using namespace driver::async;
+    {
+        [[maybe_unused]] auto task = launch_task([](auto & ct) -> coro_task {
+            co_await ct.async_wait();
+        }, ct);
+    }
 
-//     steady_timer t(100ns);
+    EXPECT_NO_THROW({
+        driver::steady_clock::traits::advance(200);
+        ct.process();
+    });
+}
 
-//     {
-//         coro_task task = [&]() -> coro_task {
-//             co_await t.async_wait();
-//         }();
-//     }
+TEST_F(CoroTimer, CancelPreventsResume) {
+    coro_timer ct(100ns);
+    bool fired = false;
 
-//     EXPECT_NO_THROW({
-//         driver::steady_clock::traits::advance(200);
-//         t.poll();
-//     });
-// }
+    launch_task([](auto & ct, auto & fired) -> coro_task {
+        co_await ct.async_wait();
+        fired = true;
+    }, ct, fired).resume();
 
-// TEST_F(TimerTest, CancelPreventsResume) {
-//     using namespace driver::async;
+    ct.cancel();
 
-//     bool fired = false;
-//     steady_timer t(100ns);
+    driver::steady_clock::traits::advance(200);
+    ct.process();
 
-//     coro_task task = [&]() -> coro_task {
-//         co_await t.async_wait();
-//         fired = true;
-//     }();
-
-//     t.cancel();
-
-//     driver::steady_clock::traits::advance(200);
-//     t.poll();
-
-//     EXPECT_FALSE(fired);
-// }
+    EXPECT_FALSE(fired);
+}

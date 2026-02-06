@@ -31,6 +31,7 @@ struct coro_timer {
         }
 
         bool await_suspend(std::coroutine_handle<> h) noexcept {
+            assert(timer.handle_ == nullptr && "Only one waiter");
             timer.handle_ = h;
             timer.active_ = true;
             return true;
