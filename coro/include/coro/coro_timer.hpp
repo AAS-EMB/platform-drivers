@@ -5,46 +5,58 @@
 namespace driver::async {
 
 struct coro_timer {
-    std::chrono::nanoseconds dur;
-    driver::steady_clock::time_point deadline{};
-    std::coroutine_handle<> handle{};
-    bool armed{false};
-
-    static coro_timer sleep_for(std::chrono::nanoseconds d) noexcept {
-        return coro_timer{d};
+    coro_timer() noexcept = default;
+    explicit coro_timer(std::chrono::nanoseconds d) noexcept {
+        expires_after(d);
     }
 
-    static coro_timer sleep_until(driver::steady_clock::time_point tp) noexcept {
-        coro_timer t{};
-        t.deadline = tp;
-        return t;
+    void expires_after(std::chrono::nanoseconds d) noexcept {
+        deadline_ = driver::steady_clock::now() + d;
     }
 
-    bool await_ready() const noexcept {
-        return dur.count() <= 0;
+    void expires_at(driver::steady_clock::time_point tp) noexcept {
+        deadline_ = tp;
     }
 
-    bool await_suspend(std::coroutine_handle<> h) noexcept {
-        handle = h;
-        armed = true;
+    void cancel() noexcept {
+        handle_ = {};
+        active_ = false;
+    }
 
-        if (deadline == driver::steady_clock::time_point{}) {
-            deadline = driver::steady_clock::now() + dur;
+    struct awaiter {
+        coro_timer & timer;
+
+        bool await_ready() const noexcept {
+            return driver::steady_clock::now() >= timer.deadline_;
         }
-        return true;
+
+        bool await_suspend(std::coroutine_handle<> h) noexcept {
+            timer.handle_ = h;
+            timer.active_ = true;
+            return true;
+        }
+
+        void await_resume() const noexcept {}
+    };
+
+    awaiter async_wait() noexcept {
+        return awaiter{*this};
     }
 
     void process() noexcept {
-        if (armed && handle && driver::steady_clock::now() >= deadline) {
-            auto h = handle;
-            handle = {};
-            armed = false;
-            if (!h.done())
+        if (active_ and handle_ and driver::steady_clock::now() >= deadline_) {
+            auto h  = handle_;
+            handle_ = {};
+            active_ = false;
+            if (not h.done())
                 h.resume();
         }
     }
 
-    void await_resume() const noexcept {}
+private:
+    driver::steady_clock::time_point deadline_{};
+    std::coroutine_handle<> handle_{};
+    bool active_{false};
 };
 
 }
