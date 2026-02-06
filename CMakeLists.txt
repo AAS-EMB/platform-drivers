@@ -11,6 +11,7 @@ option(CORO_LIB "Coroutinue library" OFF)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 if (CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     set(CHRONO_CLOCKS_LIB ON)
@@ -23,6 +24,10 @@ add_library(platform_config INTERFACE)
 # Platform-specific definitions
 if (PLATFORM STREQUAL "host")
     target_compile_definitions(platform_config INTERFACE PLATFORM_HOST BUILD_TESTS)
+    target_link_libraries(platform_config INTERFACE pthread)
+    if (CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+        add_compile_options(-fcoroutines -Wall -Wextra)
+    endif ()
 elseif (PLATFORM STREQUAL "stm32f1")
     target_compile_definitions(platform_config INTERFACE STM32F1 PLATFORM_STM32F1)
 

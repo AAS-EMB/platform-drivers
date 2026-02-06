@@ -6,14 +6,12 @@ using namespace driver::async;
 
 TEST(AsyncFlag, CoroutineWaitsUntilSet) {
     async_flag flag;
-    bool resumed = false;
+    std::atomic_bool resumed = false;
 
-    auto coro = [&]() -> coro_task {
+    launch_task([](auto & flag, auto & resumed) -> coro_task {
         co_await flag;
         resumed = true;
-    };
-
-    auto t = coro();
+    }, flag, resumed).resume();
 
     EXPECT_FALSE(resumed);
 
@@ -29,12 +27,10 @@ TEST(AsyncFlag, ImmediateResumeIfAlreadySet) {
 
     bool resumed = false;
 
-    auto coro = [&]() -> coro_task {
+    launch_task([](auto & flag, auto & resumed) -> coro_task {
         co_await flag;
         resumed = true;
-    };
-
-    auto t = coro();
+    }, flag, resumed).resume();
 
     EXPECT_TRUE(resumed);
 }
@@ -45,16 +41,14 @@ TEST(AsyncFlag, ClearResetsFlag) {
     flag = true;
     flag = false;
 
-    EXPECT_FALSE(flag.is_set());
+    EXPECT_FALSE(flag);
 
     bool resumed = false;
 
-    auto coro = [&]() -> coro_task {
+    launch_task([](auto & flag, auto & resumed) -> coro_task {
         co_await flag;
         resumed = true;
-    };
-
-    auto t = coro();
+    }, flag, resumed).resume();
 
     EXPECT_FALSE(resumed);
 }
@@ -63,12 +57,10 @@ TEST(AsyncFlag, MultipleSetIsSafe) {
     async_flag flag;
     bool resumed = false;
 
-    auto coro = [&]() -> coro_task {
+    launch_task([](auto & flag, auto & resumed) -> coro_task {
         co_await flag;
         resumed = true;
-    };
-
-    auto t = coro();
+    }, flag, resumed).resume();
 
     flag = true;
     flag = true;
@@ -81,12 +73,10 @@ TEST(AsyncFlag, DoubleSetDoesNotResumeTwice) {
     async_flag flag;
     int counter = 0;
 
-    auto coro = [&]() -> coro_task {
+    launch_task([](auto & flag, auto & counter) -> coro_task {
         co_await flag;
         ++counter;
-    };
-
-    auto t = coro();
+    }, flag, counter).resume();
 
     flag = true;
     EXPECT_EQ(counter, 1);
@@ -99,24 +89,20 @@ TEST(AsyncFlag, ResetAllowsReuse) {
     async_flag flag;
     int counter = 0;
 
-    auto coro1 = [&]() -> coro_task {
+    launch_task([](auto & flag, auto & counter) -> coro_task {
         co_await flag;
         ++counter;
-    };
-
-    auto t1 = coro1();
+    }, flag, counter).resume();
 
     flag = true;
     EXPECT_EQ(counter, 1);
 
     flag = false;
 
-    auto coro2 = [&]() -> coro_task {
+    launch_task([](auto & flag, auto & counter) -> coro_task {
         co_await flag;
         ++counter;
-    };
-
-    auto t2 = coro2();
+    }, flag, counter).resume();
 
     EXPECT_EQ(counter, 1);
 
@@ -129,47 +115,26 @@ TEST(AsyncFlag, OnlyOneWaiterAllowed) {
     bool a = false;
     bool b = false;
 
-    auto coro = [&]() -> coro_task {
+    launch_task([](auto & flag, auto & f) -> coro_task {
         co_await flag;
-        a = true;
-    };
-
-    auto t = coro();
+        f = true;
+    }, flag, a).resume();
 
 #ifndef NDEBUG
     EXPECT_DEATH({
-        auto coro = [&]() -> coro_task {
+        launch_task([](auto & flag, auto & f) -> coro_task {
             co_await flag;
-            b = true;
-        };
-        auto t = coro();
+            f = true;
+        }, flag, b).resume();
     }, "Only one waiter");
 #endif
 }
 
-TEST(AsyncFlag, NoResumeAfterCompletion) {
-    async_flag flag;
-    int counter = 0;
-
-    auto coro = [&]() -> coro_task {
-        co_await flag;
-        ++counter;
-    };
-
-    auto t = coro();
-
-    flag = true;
-    EXPECT_EQ(counter, 1);
-
-    flag = true;
-    EXPECT_EQ(counter, 1);
-}
-
 TEST(AsyncFlag, CoroutineOutlivesFlag) {
-    coro_task task = []() -> coro_task {
+    launch_task([]() -> coro_task {
         async_flag flag;
         co_await flag;
-    }();
+    }).resume();
 
     SUCCEED();
 }

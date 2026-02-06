@@ -21,8 +21,8 @@ struct coro_task {
             };
         }
 
-        std::suspend_never initial_suspend() noexcept { return {}; }
-        std::suspend_always final_suspend() noexcept { return {}; }
+        std::suspend_always initial_suspend() noexcept { return {}; }
+        std::suspend_never final_suspend() noexcept { return {}; }
         void return_void() noexcept {}
         void unhandled_exception() { std::terminate(); }
 
@@ -42,17 +42,23 @@ struct coro_task {
 
     std::coroutine_handle<promise_type> h;
 
-    coro_task(const coro_task&) = delete;
-    coro_task& operator=(const coro_task&) = delete;
-    explicit coro_task(std::coroutine_handle<promise_type> h) : h(h) {}
+    coro_task(const coro_task&) noexcept = delete;
+    coro_task& operator=(const coro_task&) noexcept = delete;
+    explicit coro_task(std::coroutine_handle<promise_type> h) noexcept : h(h) {}
     coro_task(coro_task&& other) noexcept : h(other.h) { other.h = {}; }
-    ~coro_task() {
-        #if defined(PLATFORM_HOST)
-            if (h) h.destroy();
-        #else
-            (void)h;
-        #endif
+
+    void resume() noexcept {
+        if (h && !h.done())
+            h.resume();
+    }
+
+    bool done() const noexcept {
+        return !h || h.done();
     }
 };
+
+template<typename F, typename... Ts>
+static inline auto launch_task(F && f, Ts &&... ts) noexcept
+{ return std::invoke(static_cast<F&&>(f), static_cast<Ts&&>(ts)...); }
 
 }
