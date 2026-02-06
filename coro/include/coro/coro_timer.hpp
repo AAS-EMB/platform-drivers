@@ -6,6 +6,8 @@ namespace driver::async {
 
 struct coro_timer {
     coro_timer() noexcept = default;
+    coro_timer(const coro_timer&) noexcept = delete;
+    coro_timer& operator=(const coro_timer&) noexcept = delete;
     explicit coro_timer(std::chrono::nanoseconds d) noexcept {
         expires_after(d);
     }
