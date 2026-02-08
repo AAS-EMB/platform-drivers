@@ -10,15 +10,15 @@ namespace driver {
 class steady_clock {
 public:
     using traits     = chrono_traits;
-    using rep        = typename traits::rep;
-    using period     = std::nano;
-    using duration   = std::chrono::duration<rep, period>;
+    using duration   = std::chrono::nanoseconds;
+    using rep        = duration::rep;
+    using period     = duration::period;
     using time_point = std::chrono::time_point<steady_clock>;
 
     static constexpr bool is_steady = true;
 
     static time_point now() noexcept {
-        return time_point{duration{traits::monotonic_ticks()}};
+        return time_point{traits::monotonic_ticks()};
     }
 };
 

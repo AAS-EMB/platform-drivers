@@ -5,22 +5,16 @@
 namespace driver {
 
 struct chrono_traits {
-    using rep = uint64_t;
-
     static void init() noexcept {}
 
-    static rep monotonic_ticks() noexcept {
+    static std::chrono::nanoseconds monotonic_ticks() noexcept {
         using namespace std::chrono;
-        return duration_cast<nanoseconds>(
-            steady_clock::now().time_since_epoch()
-        ).count();
+        return steady_clock::now().time_since_epoch()
     }
 
-    static rep wall_ticks() noexcept {
+    static std::chrono::nanoseconds wall_ticks() noexcept {
         using namespace std::chrono;
-        return duration_cast<milliseconds>(
-            system_clock::now().time_since_epoch()
-        ).count();
+        return system_clock::now().time_since_epoch();
     }
 };
 

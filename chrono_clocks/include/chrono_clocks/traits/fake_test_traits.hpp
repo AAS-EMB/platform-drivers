@@ -5,19 +5,17 @@
 namespace driver {
 
 struct chrono_traits {
-    using rep = int64_t;
+    static inline int64_t ticks = 0;
 
-    static inline rep ticks = 0;
-
-    static rep monotonic_ticks() noexcept {
-        return ticks;
+    static std::chrono::nanoseconds monotonic_ticks() noexcept {
+        return std::chrono::nanoseconds{ ticks };
     }
 
-    static rep wall_ticks() noexcept {
-        return ticks;
+    static std::chrono::nanoseconds wall_ticks() noexcept {
+        return std::chrono::nanoseconds{ ticks };
     }
 
-    static void advance(rep delta) noexcept {
+    static void advance(int64_t delta) noexcept {
         ticks += delta;
     }
 

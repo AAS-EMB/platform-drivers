@@ -10,15 +10,15 @@ namespace driver {
 class system_clock {
 public:
     using traits     = chrono_traits;
-    using rep        = typename traits::rep;
-    using period     = std::milli;
-    using duration   = std::chrono::duration<rep, period>;
+    using duration   = std::chrono::nanoseconds;
+    using rep        = duration::rep;
+    using period     = duration::period;
     using time_point = std::chrono::time_point<system_clock>;
 
     static constexpr bool is_steady = false;
 
     static time_point now() noexcept {
-        return time_point{duration{traits::wall_ticks()}}; // utc time
+        return time_point{traits::wall_ticks()}; // utc time
     }
 };
 

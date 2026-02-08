@@ -1,7 +1,7 @@
 #pragma once
 
 #if defined(PLATFORM_STM32F7)
-    #include <chrono_clocks/traits/stm32_systick_dwt_traits.hpp>
+    #include <chrono_clocks/traits/stm32_dwt_traits.hpp>
 #elif defined(PLATFORM_STM32F3) or defined(PLATFORM_STM32F1)
     #include <chrono_clocks/traits/stm32_systick_traits.hpp>
 #elif defined(PLATFORM_HOST)
