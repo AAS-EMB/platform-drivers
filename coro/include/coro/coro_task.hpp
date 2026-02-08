@@ -1,6 +1,7 @@
 #pragma once
 #include <coroutine>
 #include <memory_resource>
+#include <functional>
 
 namespace driver::async {
 
