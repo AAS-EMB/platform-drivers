@@ -18,7 +18,10 @@ struct chrono_traits {
     }
 
     static std::chrono::nanoseconds monotonic_ticks() noexcept {
-        uint32_t h1, l, h2;
+        using namespace std::chrono;
+        uint32_t h1 = 0u, l = 0u, h2 = 0u;
+
+        __DSB();
 
         do {
             h1 = dwt_high;
@@ -28,7 +31,7 @@ struct chrono_traits {
 
         const uint64_t cycles = (static_cast<uint64_t>(h1) << 32) | l;
 
-        return std::chrono::nanoseconds{
+        return nanoseconds{
             static_cast<int64_t>((cycles * 1'000'000'000ull) / SystemCoreClock)
         };
     }
