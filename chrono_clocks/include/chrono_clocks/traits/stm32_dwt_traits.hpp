@@ -11,7 +11,7 @@
 namespace driver {
 
 struct chrono_traits {
-    static std::chrono::nanoseconds wall_offset{};
+    static inline std::chrono::nanoseconds wall_offset{};
 
     static void init() noexcept {
         init_dwt();
