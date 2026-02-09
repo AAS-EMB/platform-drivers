@@ -19,7 +19,9 @@ struct chrono_traits {
 
     static std::chrono::nanoseconds monotonic_ticks() noexcept {
         using namespace std::chrono;
-        uint32_t h1, l, h2;
+        uint32_t h1 = 0u, l = 0u, h2 = 0u;
+
+        __DSB();
 
         do {
             h1 = dwt_high;
