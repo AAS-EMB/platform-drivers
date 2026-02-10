@@ -42,7 +42,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_library(platform_flags INTERFACE)
 
-if(NOT EXISTS ${CMAKE_SOURCE_DIR}/cmake/platforms/${PLATFORM}.cmake)
+if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/cmake/platforms/${PLATFORM}.cmake)
     message(FATAL_ERROR "Platform file not found: ${PLATFORM}")
 endif()
 
