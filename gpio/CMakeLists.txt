@@ -11,22 +11,19 @@ target_compile_features(gpio_driver INTERFACE
 # Platform-specific definitions
 if (PLATFORM STREQUAL "host")
     target_link_libraries(gpio_driver INTERFACE
-        platform_config
+        platform_flags
     )
 elseif (PLATFORM STREQUAL "stm32f1")
     target_link_libraries(gpio_driver INTERFACE
-        platform_config
-        stm32f1_cmsis
+        stm32f1_hal
     )
 elseif (PLATFORM STREQUAL "stm32f3")
     target_link_libraries(gpio_driver INTERFACE
-        platform_config
-        stm32f3_cmsis
+        stm32f3_hal
     )
 elseif (PLATFORM STREQUAL "stm32f7")
     target_link_libraries(gpio_driver INTERFACE
-        platform_config
-        stm32f7_cmsis
+        stm32f7_hal
     )
 endif()
 
@@ -34,7 +31,7 @@ if (BUILD_TESTS AND PLATFORM STREQUAL "host")
     add_subdirectory(tests)
 endif()
 
-if (NOT PLATFORM STREQUAL "host" AND CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+if (NOT PLATFORM STREQUAL "host" AND SDK_STANDALONE)
     add_library(gpio_compile_check OBJECT
         ${CMAKE_CURRENT_LIST_DIR}/tests/compile_check.cpp
     )
