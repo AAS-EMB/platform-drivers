@@ -55,7 +55,7 @@ endif()
 # git hash (best effort)
 execute_process(
     COMMAND git rev-parse --short HEAD
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     OUTPUT_VARIABLE SDK_GIT_HASH
     OUTPUT_STRIP_TRAILING_WHITESPACE
     ERROR_QUIET
@@ -70,7 +70,7 @@ set(SDK_VERSION_FULL
 )
 
 configure_file(
-    ${CMAKE_SOURCE_DIR}/cmake/version/sdk_version.hpp.in
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/version/sdk_version.hpp.in
     ${CMAKE_BINARY_DIR}/generated/sdk_version.hpp
     @ONLY
 )
