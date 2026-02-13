@@ -46,6 +46,39 @@ if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/cmake/platforms/${PLATFORM}.cmake)
     message(FATAL_ERROR "Platform file not found: ${PLATFORM}")
 endif()
 
+# CI build number
+set(SDK_BUILD $ENV{BUILD_NUMBER})
+if(NOT SDK_BUILD)
+    set(SDK_BUILD 0)
+endif()
+
+# git hash (best effort)
+execute_process(
+    COMMAND git rev-parse --short HEAD
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE SDK_GIT_HASH
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+)
+
+if(NOT SDK_GIT_HASH)
+    set(SDK_GIT_HASH "unknown")
+endif()
+
+set(SDK_VERSION_FULL
+    "${PROJECT_VERSION}+build.${SDK_BUILD}"
+)
+
+configure_file(
+    ${CMAKE_SOURCE_DIR}/cmake/version/sdk_version.hpp.in
+    ${CMAKE_BINARY_DIR}/generated/sdk_version.hpp
+    @ONLY
+)
+
+target_include_directories(platform_flags INTERFACE
+    ${CMAKE_BINARY_DIR}/generated
+)
+
 include(cmake/platforms/${PLATFORM}.cmake)
 
 target_compile_options(platform_flags INTERFACE

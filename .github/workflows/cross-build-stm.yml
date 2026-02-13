@@ -1,81 +1,57 @@
-name: STM32 Cross Build
+name: Build Platform SDK
 
 on:
-  pull_request:
-    branches: [ main ]
   push:
     branches: [ main ]
+  pull_request:
 
 jobs:
-  stm32f7-build:
+  build:
     runs-on: ubuntu-latest
 
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: true
+    strategy:
+      matrix:
+        platform: [stm32f1, stm32f3, stm32f7]
 
-      - name: Install ARM toolchain
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc-arm-none-eabi cmake ninja-build
-
-      - name: Configure (STM32F7)
-        run: |
-          cmake -S . -B build-stm32f7 \
-            -G Ninja \
-            -DPLATFORM=stm32f7 \
-            -DBUILD_TESTS=OFF \
-            -DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/arm-none-eabi.cmake
-
-      - name: Build
-        run: |
-          cmake --build build-stm32f7
-  stm32f3-build:
-    runs-on: ubuntu-latest
+    env:
+      BUILD_NUMBER: ${{ github.run_number }}
+      SDK_STANDALONE: ON
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
-          submodules: true
+          submodules: recursive
 
       - name: Install ARM toolchain
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc-arm-none-eabi cmake ninja-build
+        run: sudo apt update && sudo apt install -y gcc-arm-none-eabi
 
-      - name: Configure (STM32F3)
+      - name: Read SDK version
+        id: sdkver
         run: |
-          cmake -S . -B build-stm32f3 \
-            -G Ninja \
-            -DPLATFORM=stm32f3 \
-            -DBUILD_TESTS=OFF \
+          SDK_VER=$(cat VERSION)
+          echo "SDK_VER=$SDK_VER" >> $GITHUB_ENV
+          echo "Full SDK version: $SDK_VER+build.${{ github.run_number }}"
+
+      - name: Configure SDK
+        run: |
+          cmake -S . -B build-${{ matrix.platform }} \
+            -DPLATFORM=${{ matrix.platform }} \
+            -DSDK_STANDALONE=ON \
+            -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/arm-none-eabi.cmake
 
-      - name: Build
-        run: |
-          cmake --build build-stm32f3
-  stm32f1-build:
-    runs-on: ubuntu-latest
+      - name: Build SDK
+        run: cmake --build build-${{ matrix.platform }}
 
-    steps:
-      - uses: actions/checkout@v4
+      - name: Collect artifacts
+        run: |
+          mkdir -p artifacts/${{ matrix.platform }}
+          find build-${{ matrix.platform }} -name "*.a" -exec cp {} artifacts/${{ matrix.platform }}/ \;
+
+      - name: Upload SDK artifacts
+        uses: actions/upload-artifact@v4
         with:
-          submodules: true
-
-      - name: Install ARM toolchain
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc-arm-none-eabi cmake ninja-build
-
-      - name: Configure (STM32F1)
-        run: |
-          cmake -S . -B build-stm32f1 \
-            -G Ninja \
-            -DPLATFORM=stm32f1 \
-            -DBUILD_TESTS=OFF \
-            -DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/arm-none-eabi.cmake
-
-      - name: Build
-        run: |
-          cmake --build build-stm32f1
+          name: platform-sdk-${{ env.SDK_VER }}+build.${{ github.run_number }}-${{ matrix.platform }}
+          path: artifacts/${{ matrix.platform }}
+          retention-days: 7
