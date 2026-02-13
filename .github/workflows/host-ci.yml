@@ -1,70 +1,69 @@
-name: Host CI
+name: Host SDK CI
 
 on:
   pull_request:
-    branches: [ main ]
   push:
     branches: [ main ]
 
 jobs:
-  host-build:
+  host:
     runs-on: ubuntu-latest
 
+    env:
+      BUILD_NUMBER: ${{ github.run_number }}
+      SDK_STANDALONE: ON
+
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
         with:
-          submodules: true
+          submodules: recursive
 
-      - name: Install build dependencies
+      - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            cmake \
-            ninja-build \
-            g++ \
-            clang
+          sudo apt update
+          sudo apt install -y cmake ninja-build g++
 
-      - name: Configure (host)
+      - name: Read SDK version
+        run: echo "SDK_VER=$(cat VERSION)" >> $GITHUB_ENV
+
+      # --------------------
+      # TEST BUILD
+      # --------------------
+      - name: Configure host (tests)
         run: |
-          cmake -S . -B build \
+          cmake -S . -B build-test \
             -G Ninja \
             -DPLATFORM=host \
             -DBUILD_TESTS=ON
 
-      - name: Build
-        run: |
-          cmake --build build
-
-  host-build-test:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          submodules: true
-
-      - name: Install build dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            cmake \
-            ninja-build \
-            g++ \
-            clang
-
-      - name: Configure (host)
-        run: |
-          cmake -S . -B build \
-            -G Ninja \
-            -DPLATFORM=host \
-            -DBUILD_TESTS=ON
-
-      - name: Build
-        run: |
-          cmake --build build
+      - name: Build host (tests)
+        run: cmake --build build-test
 
       - name: Run tests
+        run: ctest --test-dir build-test --output-on-failure
+
+      # --------------------
+      # RELEASE BUILD
+      # --------------------
+      - name: Configure host (release)
         run: |
-          ctest --test-dir build --output-on-failure
+          cmake -S . -B build-release \
+            -G Ninja \
+            -DPLATFORM=host \
+            -DBUILD_TESTS=OFF
+
+      - name: Build host (release)
+        run: cmake --build build-release
+
+      - name: Collect host artifacts
+        run: |
+          mkdir -p artifacts
+          find build-release -name "*.a" -exec cp {} artifacts/ \;
+
+      - name: Upload host SDK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: platform-sdk-${{ env.SDK_VER }}+build.${{ github.run_number }}-host
+          path: artifacts
+          retention-days: 7
