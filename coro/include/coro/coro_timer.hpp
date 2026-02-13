@@ -1,6 +1,7 @@
 #pragma once
 #include <coroutine>
 #include <chrono_clocks/steady_clock.hpp>
+#include <cassert>
 
 namespace driver::async {
 
