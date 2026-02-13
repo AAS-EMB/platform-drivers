@@ -38,7 +38,8 @@ jobs:
           cmake -S . -B build-${{ matrix.platform }} \
             -DPLATFORM=${{ matrix.platform }} \
             -DSDK_STANDALONE=ON \
-            -DCMAKE_BUILD_TYPE=Release
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/arm-none-eabi.cmake
 
       - name: Build SDK
         run: cmake --build build-${{ matrix.platform }}
