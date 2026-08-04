@@ -1,6 +1,7 @@
 #include <coro/coro_timer.hpp>
 #include <coro/coro_task.hpp>
 #include <coro/async_flag.hpp>
+#include <coro/async_queue.hpp>
 
 using namespace driver;
 using namespace driver::async;
@@ -17,4 +18,11 @@ void compile_check() {
         async_flag flag;
         co_await flag;
     }).resume();
+
+    async_queue<int, 4> queue;
+    [[maybe_unused]] const auto pushed = queue.try_push(1);
+    launch_task([](auto& queue) -> coro_task {
+        (void)co_await queue.async_pop();
+    }, queue).resume();
+    queue.process();
 }

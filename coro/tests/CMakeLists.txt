@@ -1,6 +1,7 @@
 
 add_executable(coro_lib_tests
     async_flag_test.cpp
+    async_queue_test.cpp
     coro_timer_test.cpp
 )
 
