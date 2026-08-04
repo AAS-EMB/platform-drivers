@@ -29,27 +29,8 @@ jobs:
       - name: Initialize target submodules
         run: ./scripts/init-submodules.sh --platform ${{ matrix.platform }}
 
-      - name: Read SDK version
-        id: sdkver
-        run: |
-          SDK_VER=$(cat VERSION)
-          echo "SDK_VER=$SDK_VER" >> $GITHUB_ENV
-          echo "Full SDK version: $SDK_VER+build.${{ github.run_number }}"
-
       - name: Configure SDK
         run: cmake --preset ${{ matrix.platform }}-release
 
       - name: Build SDK
         run: cmake --build --preset ${{ matrix.platform }}-release
-
-      - name: Collect artifacts
-        run: |
-          mkdir -p artifacts/${{ matrix.platform }}
-          find build/${{ matrix.platform }}-release -name "*.a" -exec cp {} artifacts/${{ matrix.platform }}/ \;
-
-      - name: Upload SDK artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: platform-sdk-${{ env.SDK_VER }}+build.${{ github.run_number }}-${{ matrix.platform }}
-          path: artifacts/${{ matrix.platform }}
-          retention-days: 7
