@@ -8,24 +8,7 @@ target_compile_features(coro_lib INTERFACE
     cxx_std_20
 )
 
-# Platform-specific definitions
-if (PLATFORM STREQUAL "host")
-    target_link_libraries(coro_lib INTERFACE
-        platform_flags
-    )
-elseif (PLATFORM STREQUAL "stm32f1")
-    target_link_libraries(coro_lib INTERFACE
-        stm32f1_hal
-    )
-elseif (PLATFORM STREQUAL "stm32f3")
-    target_link_libraries(coro_lib INTERFACE
-        stm32f3_hal
-    )
-elseif (PLATFORM STREQUAL "stm32f7")
-    target_link_libraries(coro_lib INTERFACE
-        stm32f7_hal
-    )
-endif()
+target_link_libraries(coro_lib INTERFACE platform)
 
 if (BUILD_TESTS AND PLATFORM STREQUAL "host")
     add_subdirectory(tests)

@@ -111,3 +111,27 @@ All non-hardware logic is tested **on the host**.
 - DMA / IRQ timing
 
 Those are validated on hardware.
+
+---
+
+## Build
+
+The repository keeps vendor dependencies as submodules, but initializes only the
+ones required by the selected platform. Do not use `--recurse-submodules` unless
+you deliberately need every STM32 family.
+
+```sh
+# Host unit tests
+./scripts/init-submodules.sh --platform host --with-tests
+cmake --preset host-tests
+cmake --build --preset host-tests
+ctest --preset host-tests
+
+# STM32F7 compile checks and HAL archive
+./scripts/init-submodules.sh --platform stm32f7
+cmake --preset stm32f7-release
+cmake --build --preset stm32f7-release
+```
+
+Available presets are `host-tests`, `host-release`, and
+`stm32f1-release` / `stm32f3-release` / `stm32f7-release`.
