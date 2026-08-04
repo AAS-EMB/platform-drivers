@@ -135,3 +135,39 @@ cmake --build --preset stm32f7-release
 
 Available presets are `host-tests`, `host-release`, and
 `stm32f1-release` / `stm32f3-release` / `stm32f7-release`.
+
+---
+
+## Coroutine message queue
+
+`driver::async::async_queue<T, Capacity>` is a bounded, allocation-free SPSC
+queue for handing received messages from one producer to one coroutine
+consumer. `try_push()` returns `false` when the queue is full; the caller can
+then count or otherwise handle the dropped message.
+
+An interrupt handler may push a message, but must not resume application code.
+Call `process()` from the normal event loop to resume one coroutine waiting in
+`co_await queue.async_pop()`.
+
+```cpp
+driver::async::async_queue<can_frame, 32> received_frames;
+
+void CAN_RX_IRQHandler() {
+    // Read the frame from hardware first.
+    [[maybe_unused]] const bool queued = received_frames.try_push(read_frame());
+}
+
+driver::async::coro_task receive_loop() {
+    for (;;) {
+        auto frame = co_await received_frames.async_pop();
+        handle(frame);
+    }
+}
+
+void event_loop_iteration() {
+    received_frames.process();
+}
+```
+
+Only one coroutine may wait for each queue at a time. The queue uses lock-free
+`size_t` atomics and is intended for one producer and one consumer.
