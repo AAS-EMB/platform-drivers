@@ -27,9 +27,6 @@ jobs:
       - name: Initialize test submodule
         run: ./scripts/init-submodules.sh --platform host --with-tests
 
-      - name: Read SDK version
-        run: echo "SDK_VER=$(cat VERSION)" >> $GITHUB_ENV
-
       # --------------------
       # TEST BUILD
       # --------------------
@@ -50,15 +47,3 @@ jobs:
 
       - name: Build host (release)
         run: cmake --build --preset host-release
-
-      - name: Collect host artifacts
-        run: |
-          mkdir -p artifacts
-          find build/host-release -name "*.a" -exec cp {} artifacts/ \;
-
-      - name: Upload host SDK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: platform-sdk-${{ env.SDK_VER }}+build.${{ github.run_number }}-host
-          path: artifacts
-          retention-days: 7
