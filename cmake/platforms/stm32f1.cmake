@@ -1,29 +1,9 @@
-message(STATUS "Using STM32F1 platform")
+include("${CMAKE_CURRENT_LIST_DIR}/stm32.cmake")
+sdk_configure_stm32_platform(cortex-m3 PLATFORM_STM32F1)
 
-set(MCU cortex-m3)
-
-set(PLATFORM_COMMON_FLAGS
-    -mcpu=${MCU}
-    -mthumb
-)
-
-set(PLATFORM_C_FLAGS
-    -ffunction-sections
-    -fdata-sections
-)
-
-set(PLATFORM_CXX_FLAGS
-    ${PLATFORM_C_FLAGS}
-    -fcoroutines
-)
-
-set(PLATFORM_LINK_COMMON
-    -mcpu=${MCU}
-    -mthumb
-    -Wl,--gc-sections
-)
-
-set(PLATFORM_LINK_LIBS
-    -lc
-    -lm
-)
+sdk_require_file("external/cmsis/Core/Include/core_cm3.h")
+sdk_require_file("external/cmsis-device-f1/Include/stm32f100xb.h")
+sdk_require_file("external/stm32f1_hal/Inc/stm32f1xx_hal.h")
+include("${CMAKE_CURRENT_LIST_DIR}/../external/cmsis/stm32f1.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/../external/hal/stm32f1.cmake")
+target_link_libraries(platform INTERFACE stm32f1_hal)

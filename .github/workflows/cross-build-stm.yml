@@ -21,10 +21,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: false
 
-      - name: Install ARM toolchain
-        run: sudo apt update && sudo apt install -y gcc-arm-none-eabi
+      - name: Install ARM toolchain and Ninja
+        run: sudo apt update && sudo apt install -y gcc-arm-none-eabi ninja-build
+
+      - name: Initialize target submodules
+        run: ./scripts/init-submodules.sh --platform ${{ matrix.platform }}
 
       - name: Read SDK version
         id: sdkver
@@ -34,20 +37,15 @@ jobs:
           echo "Full SDK version: $SDK_VER+build.${{ github.run_number }}"
 
       - name: Configure SDK
-        run: |
-          cmake -S . -B build-${{ matrix.platform }} \
-            -DPLATFORM=${{ matrix.platform }} \
-            -DSDK_STANDALONE=ON \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/arm-none-eabi.cmake
+        run: cmake --preset ${{ matrix.platform }}-release
 
       - name: Build SDK
-        run: cmake --build build-${{ matrix.platform }}
+        run: cmake --build --preset ${{ matrix.platform }}-release
 
       - name: Collect artifacts
         run: |
           mkdir -p artifacts/${{ matrix.platform }}
-          find build-${{ matrix.platform }} -name "*.a" -exec cp {} artifacts/${{ matrix.platform }}/ \;
+          find build/${{ matrix.platform }}-release -name "*.a" -exec cp {} artifacts/${{ matrix.platform }}/ \;
 
       - name: Upload SDK artifacts
         uses: actions/upload-artifact@v4

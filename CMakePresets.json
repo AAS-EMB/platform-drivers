@@ -1,0 +1,82 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 20,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}"
+    },
+    {
+      "name": "host-tests",
+      "displayName": "Host tests",
+      "inherits": "base",
+      "cacheVariables": {
+        "PLATFORM": "host",
+        "BUILD_TESTS": "ON",
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "host-release",
+      "displayName": "Host release",
+      "inherits": "base",
+      "cacheVariables": {
+        "PLATFORM": "host",
+        "BUILD_TESTS": "OFF",
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "stm32f1-release",
+      "displayName": "STM32F1 release",
+      "inherits": "base",
+      "cacheVariables": {
+        "PLATFORM": "stm32f1",
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/arm-none-eabi.cmake"
+      }
+    },
+    {
+      "name": "stm32f3-release",
+      "displayName": "STM32F3 release",
+      "inherits": "base",
+      "cacheVariables": {
+        "PLATFORM": "stm32f3",
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/arm-none-eabi.cmake"
+      }
+    },
+    {
+      "name": "stm32f7-release",
+      "displayName": "STM32F7 release",
+      "inherits": "base",
+      "cacheVariables": {
+        "PLATFORM": "stm32f7",
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/arm-none-eabi.cmake"
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "host-tests", "configurePreset": "host-tests" },
+    { "name": "host-release", "configurePreset": "host-release" },
+    { "name": "stm32f1-release", "configurePreset": "stm32f1-release" },
+    { "name": "stm32f3-release", "configurePreset": "stm32f3-release" },
+    { "name": "stm32f7-release", "configurePreset": "stm32f7-release" }
+  ],
+  "testPresets": [
+    {
+      "name": "host-tests",
+      "configurePreset": "host-tests",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
+  ]
+}
